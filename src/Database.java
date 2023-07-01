@@ -36,7 +36,7 @@ public class Database {
         this.accessNumReaderLock.lock();
         this.numOfReaders++;
         this.accessNumReaderLock.unlock();
-        this.get();
+        //this.get();
         // TODO: Add your code here...
     }
 
