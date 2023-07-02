@@ -1,4 +1,10 @@
 public class PathFromRoot {
+    /**
+     * checks if there's a path from the root of the tree which builds the string str in order
+     * @param root the root of the tree
+     * @param str the string we want to find a path to
+     * @return true if there is a path for this string from the root, false otherwise
+     */
     public static boolean doesPathExist(BinNode<Character> root, String str) {
         //end of string
         if(str.isEmpty())
