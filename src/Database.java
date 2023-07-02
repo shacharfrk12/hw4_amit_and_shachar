@@ -51,16 +51,20 @@ public class Database {
      * @return true if succeeded, false otherwise
      */
     public boolean readTryAcquire() {
-        this.accessTInfoLock.lock();
-        //checking can read - if there are less than maximum readers and no thread is writing
-        boolean canRead = (this.numOfReaders < this.MAX_READERS) && (!(this.isSomeoneWriting));
-        if(canRead){
-            //updating thread info as reader in the attributes
-            this.numOfReaders++;
-            this.pidReaders.add(Thread.currentThread().getId());
+        try {
+            this.accessTInfoLock.lock();
+            //checking can read - if there are less than maximum readers and no thread is writing
+            boolean canRead = (this.numOfReaders < this.MAX_READERS) && (!(this.isSomeoneWriting));
+            if (canRead) {
+                //updating thread info as reader in the attributes
+                this.numOfReaders++;
+                this.pidReaders.add(Thread.currentThread().getId());
+            }
+            return canRead;
         }
-        this.accessTInfoLock.unlock();
-        return canRead;
+        finally {
+            this.accessTInfoLock.unlock();
+        }
     }
 
     /**
@@ -91,17 +95,21 @@ public class Database {
      * release access and instead throw exception with string "Illegal read release attempt"
      */
     public void readRelease() {
-        this.accessTInfoLock.lock();
-        //checking if the thread acquired read access
-        if(!this.pidReaders.contains(Thread.currentThread().getId())) {
-            this.accessTInfoLock.unlock();
-            throw new IllegalMonitorStateException("Illegal read release attempt");
+        try {
+            this.accessTInfoLock.lock();
+            //checking if the thread acquired read access
+            if (!this.pidReaders.contains(Thread.currentThread().getId())) {
+                throw new IllegalMonitorStateException("Illegal read release attempt");
+            }
+
+            //erasing thread info as reader in the attributes
+            this.pidReaders.remove(Thread.currentThread().getId());
+            this.numOfReaders--;
         }
-        //erasing thread info as reader in the attributes
-        this.pidReaders.remove(Thread.currentThread().getId());
-        this.numOfReaders--;
-        this.canReadWrite.signal();
-        this.accessTInfoLock.unlock();
+        finally {
+            this.canReadWrite.signal();
+            this.accessTInfoLock.unlock();
+        }
     }
 
     /**
@@ -110,16 +118,21 @@ public class Database {
      * @return true if succeeded, false otherwise
      */
     public boolean writeTryAcquire() {
-        this.accessTInfoLock.lock();
-        // checking can write - only if no other thread is reading or writing
-        boolean canWrite = (this.numOfReaders == 0) && (!(this.isSomeoneWriting));
-        if(canWrite) {
-            this.isSomeoneWriting = true;
-            this.pidWriter = Thread.currentThread().getId();
+        try {
+            this.accessTInfoLock.lock();
+            // checking can write - only if no other thread is reading or writing
+            boolean canWrite = (this.numOfReaders == 0) && (!(this.isSomeoneWriting));
+            if (canWrite) {
+                //updating thread info as writer in the attributes
+                this.isSomeoneWriting = true;
+                this.pidWriter = Thread.currentThread().getId();
+            }
+            return canWrite;
         }
-        //updating thread info as writer in the attributes
-        this.accessTInfoLock.unlock();
-        return canWrite;
+        finally {
+            this.accessTInfoLock.unlock();
+        }
+
     }
 
     /**
@@ -150,15 +163,18 @@ public class Database {
      * release access and instead throw exception with string "Illegal write release attempt"
      */
     public void writeRelease() {
-        this.accessTInfoLock.lock();
-        if(this.pidWriter == null || this.pidWriter != Thread.currentThread().getId()){
-            this.accessTInfoLock.unlock();
-            throw new IllegalMonitorStateException("Illegal write release attempt");
+        try {
+            this.accessTInfoLock.lock();
+            if (this.pidWriter == null || this.pidWriter != Thread.currentThread().getId()) {
+                throw new IllegalMonitorStateException("Illegal write release attempt");
+            }
+            //erasing thread info as writer in the attributes
+            this.pidWriter = null;
+            this.isSomeoneWriting = false;
         }
-        //erasing thread info as writer in the attributes
-        this.pidWriter = null;
-        this.isSomeoneWriting = false;
-        this.canReadWrite.signal();
-        this.accessTInfoLock.unlock();
+        finally {
+            this.canReadWrite.signal();
+            this.accessTInfoLock.unlock();
+        }
     }
 }
