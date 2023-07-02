@@ -79,8 +79,6 @@ public class Database {
             this.pidReaders.add(Thread.currentThread().getId());
         }
         catch (InterruptedException e){
-            //Todo : erase this later
-            throw new RuntimeException("Interrupted exception in read acquire");
         }
         finally {
             this.accessTInfoLock.unlock();
@@ -129,7 +127,6 @@ public class Database {
      * The thread waits till it can have access to the database and only then acquires write access
      */
     public void writeAcquire() {
-        // TODO: deal with busy waiting
         try{
             this.accessTInfoLock.lock();
             // checking can write - only if no other thread is reading or writing
@@ -141,8 +138,6 @@ public class Database {
             this.isSomeoneWriting = true;
         }
         catch (InterruptedException e){
-            //Todo : erase this later
-            throw new RuntimeException("Interrupted exception in write acquire");
         }
         finally {
             this.accessTInfoLock.unlock();
